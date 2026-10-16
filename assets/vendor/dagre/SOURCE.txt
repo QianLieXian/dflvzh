@@ -1,0 +1,5 @@
+Package: dagre
+Version: 0.8.5
+Archive: https://registry.npmjs.org/dagre/-/dagre-0.8.5.tgz
+Integrity: sha512-/aTqmnRta7x7MCCpExk7HQL2O4owCT2h8NT//9I1OQ9vt29Pa0BzSAkR5lwFUcQ7491yVi/3CXU9jQ5o0Mn2Sw==
+Source: Kromtec/LegendsViewer-Next package-lock.json

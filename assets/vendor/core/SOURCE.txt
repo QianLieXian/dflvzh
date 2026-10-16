@@ -1,0 +1,4 @@
+@popperjs/core 2.11.8
+Original upstream browser distribution, downloaded from https://registry.npmjs.org/@popperjs/core
+Original project package-lock pins this version.
+Runtime loads only local files.

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IndexedDB 记录回归</title>
+<style>body{font:16px/1.5 sans-serif;max-width:960px;margin:32px auto;padding:0 16px}button,input{font:inherit}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style>
+<h1>IndexedDB 记录回归</h1>
+<p>直接用浏览器打开并运行。默认使用生成的小型 XML；也可选择同一世界的 Legends 与 Legends Plus XML 验证原始记录等价。仅清理本测试创建的 reg- 命名空间。</p>
+<input id="files" type="file" accept=".xml" multiple aria-label="可选的 Legends XML 测试夹具">
+<button id="run" type="button">运行回归</button>
+<pre id="results" aria-live="polite"></pre>
+<script src="../js/data.js"></script>
+<script src="../js/storage-values.js"></script><script src="../js/local-store.js"></script>
+<script src="../js/upstream-ui.js"></script>
+<script src="local-store-regression.js"></script>
+</html>

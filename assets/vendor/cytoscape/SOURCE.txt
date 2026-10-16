@@ -1,0 +1,5 @@
+Package: cytoscape
+Version: 3.31.0
+Archive: https://registry.npmjs.org/cytoscape/-/cytoscape-3.31.0.tgz
+Integrity: sha512-zDGn1K/tfZwEnoGOcHc0H4XazqAAXAuDpcYw9mUnUjATjqljyCNGJv8uEvbvxGaGHaVshxMecyl6oc6uKzRfbw==
+Source: Kromtec/LegendsViewer-Next package-lock.json

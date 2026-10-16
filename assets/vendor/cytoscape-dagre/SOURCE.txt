@@ -1,0 +1,5 @@
+Package: cytoscape-dagre
+Version: 2.5.0
+Archive: https://registry.npmjs.org/cytoscape-dagre/-/cytoscape-dagre-2.5.0.tgz
+Integrity: sha512-VG2Knemmshop4kh5fpLO27rYcyUaaDkRw+6PiX4bstpB+QFt0p2oauMrsjVbUamGWQ6YNavh7x2em2uZlzV44g==
+Source: Kromtec/LegendsViewer-Next package-lock.json

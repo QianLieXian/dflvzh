@@ -1,0 +1,231 @@
+{
+  "source": "Kromtec/LegendsViewer-Next",
+  "sourceRoot": "LegendsViewer.Frontend/legends-viewer-frontend/src",
+  "views": {
+    "Artifact": {
+      "properties": [
+        "creatorLink",
+        "description",
+        "holderLink",
+        "item",
+        "material",
+        "name",
+        "pageCount",
+        "regionLink",
+        "siteLink",
+        "structureLink",
+        "subtype",
+        "writtenContentLink"
+      ],
+      "source": "views/Artifact.vue"
+    },
+    "Battle": {
+      "properties": [
+        "deathsByRace",
+        "miscList",
+        "notableDeathLinks"
+      ],
+      "source": "views/Battle.vue"
+    },
+    "Construction": {
+      "properties": [
+        "masterConstructionToLink",
+        "masterConstructionType",
+        "regionLinks",
+        "riverLinks",
+        "sectionLinks",
+        "site1ToLink",
+        "site2ToLink",
+        "squareTiles",
+        "type",
+        "undergroundRegionLinks"
+      ],
+      "source": "views/Construction.vue"
+    },
+    "DanceForm": {
+      "properties": [
+        "description"
+      ],
+      "source": "views/DanceForm.vue"
+    },
+    "Entity": {
+      "properties": [
+        "currentSiteList",
+        "entityEntityLinkList",
+        "entityPositionAssignmentsList",
+        "entitySiteLinkList",
+        "id",
+        "lostSiteList",
+        "warGraphData",
+        "warList",
+        "worshippedLinks"
+      ],
+      "source": "views/Entity.vue"
+    },
+    "HistoricalFigure": {
+      "properties": [
+        "battleLinks",
+        "beastAttackLinks",
+        "dedicatedStructuresLinks",
+        "familyTreeData",
+        "holdingArtifactLinks",
+        "journeyPets",
+        "miscList",
+        "name",
+        "notableKillList",
+        "positionList",
+        "relatedEntityList",
+        "relatedHistoricalFigureList",
+        "relatedSiteList",
+        "skillDescriptions",
+        "snatchedHfLinks",
+        "vagueRelationshipList",
+        "worshippedDeities",
+        "worshippingEntitiesList",
+        "worshippingFiguresList"
+      ],
+      "source": "views/HistoricalFigure.vue"
+    },
+    "MountainPeak": {
+      "properties": [
+        "height",
+        "heightFeet",
+        "heightMeter",
+        "isHighestInRegion",
+        "isHighestInWorld",
+        "isVolcano",
+        "regionLink",
+        "regionalRank",
+        "totalPeaksInRegion",
+        "totalPeaksInWorld",
+        "worldRank"
+      ],
+      "source": "views/MountainPeak.vue"
+    },
+    "MusicalForm": {
+      "properties": [
+        "description"
+      ],
+      "source": "views/MusicalForm.vue"
+    },
+    "PoeticForm": {
+      "properties": [
+        "description"
+      ],
+      "source": "views/PoeticForm.vue"
+    },
+    "Region": {
+      "properties": [
+        "battleLinks",
+        "constructionLinks",
+        "evilness",
+        "forceLink",
+        "mountainPeakLinks",
+        "notableDeathLinks",
+        "riverLinks",
+        "siteLinks",
+        "squareTiles"
+      ],
+      "source": "views/Region.vue"
+    },
+    "River": {
+      "properties": [
+        "constructionLinks",
+        "length",
+        "regionLinks",
+        "siteLinks"
+      ],
+      "source": "views/River.vue"
+    },
+    "Site": {
+      "properties": [
+        "abductionLinks",
+        "battleLinks",
+        "beastAttackLinks",
+        "conqueringLinks",
+        "currentOwnerToLink",
+        "deathsByRace",
+        "duelLinks",
+        "insurrectionLinks",
+        "notableDeathLinks",
+        "persecutionLinks",
+        "raidLinks",
+        "regionToLink",
+        "relatedHistoricalFigureLinks",
+        "structuresLinks"
+      ],
+      "source": "views/Site.vue"
+    },
+    "Structure": {
+      "properties": [
+        "altName",
+        "copiedArtifactLinks",
+        "deityToLink",
+        "entityToLink",
+        "inhabitantLinks",
+        "ownerToLink",
+        "religionToLink",
+        "siteToLink",
+        "subtype",
+        "type"
+      ],
+      "source": "views/Structure.vue"
+    },
+    "UndergroundRegion": {
+      "properties": [
+        "battleLinks",
+        "breachLinks",
+        "depth",
+        "regionLinks",
+        "siteLinks",
+        "squareTiles",
+        "type"
+      ],
+      "source": "views/UndergroundRegion.vue"
+    },
+    "War": {
+      "properties": [
+        "battleGraphData",
+        "battleList",
+        "deathsByRace",
+        "miscList",
+        "notableDeathLinks"
+      ],
+      "source": "views/War.vue"
+    },
+    "WrittenContent": {
+      "properties": [
+        "miscList"
+      ],
+      "source": "views/WrittenContent.vue"
+    }
+  },
+  "charts": {
+    "World": [
+      "PopulationByRace:doughnut",
+      "AreaByRegion:doughnut",
+      "Events:line+type-bar"
+    ],
+    "Site": [
+      "DeathsByRace:doughnut"
+    ],
+    "War": [
+      "DeathsByRace:doughnut",
+      "BattleGraph:cytoscape-cola"
+    ],
+    "Battle": [
+      "DeathsByRace:doughnut"
+    ],
+    "Entity": [
+      "WarGraph:cytoscape-cola",
+      "LeaderTimeline:primaryOnly",
+      "LeaderTimeline:otherPositions"
+    ],
+    "HistoricalFigure": [
+      "FamilyTree:cytoscape-dagre"
+    ],
+    "WorldObjectPage": [
+      "Events:line+type-bar"
+    ]
+  }
+}

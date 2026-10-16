@@ -1,0 +1,5 @@
+webcola 3.4.0
+Original upstream browser distribution, downloaded from https://registry.npmjs.org/webcola
+Original project package-lock pins this version.
+Runtime loads only local files.
+The webcola UMD global is also aliased as window.webcola for cytoscape-cola.

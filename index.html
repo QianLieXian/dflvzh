@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <link rel="stylesheet" href="assets/vendor/tippy.js/tippy.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#121212">
+  <meta name="author" content="Byayoi同人社区">
+  <title>Legends Viewer</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/mdi-icons.css">
+  <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+  <script src="assets/vendor/leaflet/leaflet.js" defer></script>
+  <script src="assets/vendor/chartjs/chart.umd.js" defer></script>
+  <script src="assets/vendor/cytoscape/cytoscape.min.js" defer></script>
+  <script src="assets/vendor/webcola/cola.min.js" defer></script>
+  <script src="assets/vendor/cytoscape-cola/cytoscape-cola.js" defer></script>
+  <script src="assets/vendor/core/popper.min.js" defer></script>
+  <script src="assets/vendor/tippy.js/tippy-bundle.umd.min.js" defer></script>
+  <script src="assets/vendor/dagre/dagre.min.js" defer></script>
+  <script src="assets/vendor/cytoscape-dagre/cytoscape-dagre.js" defer></script>
+  <script src="js/translation-data.js" defer></script>
+  <script src="js/translation-phonetics.js" defer></script>
+  <script src="js/translate.js" defer></script>
+  <script src="js/translation-ui-data.js" defer></script>
+  <script src="js/translation-ui.js" defer></script>
+  <script src="js/translation-item-data.js" defer></script>
+  <script src="js/item-translate.js" defer></script>
+  <script src="js/storage-values.js" defer></script>
+  <script src="js/data.js" defer></script>
+  <script src="js/local-store.js" defer></script>
+  <script src="js/file-indexer.js" defer></script>
+  <script src="js/fast-store.js" defer></script>
+  <script src="js/import-client.js" defer></script>
+  <script src="js/map.js" defer></script>
+  <script src="js/upstream-ui.js" defer></script>
+  <script src="js/records.js" defer></script>
+  <script src="js/family.js" defer></script>
+  <script src="js/charts.js" defer></script>
+  <script src="js/filters.js" defer></script>
+  <script src="js/details.js" defer></script>
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-button menu-toggle" id="menu-toggle" aria-label="导航"><i class="mdi mdi-menu" aria-hidden="true"></i></button>
+    <a class="app-logo" href="#/"><img src="assets/ceretelina.png" width="36" height="36" alt=""></a>
+    <h1>Legends Viewer</h1>
+    <a class="button github-link" href="https://github.com/pokemonchw/dflvzh" target="_blank" rel="noopener" aria-label="GitHub"><i class="mdi mdi-github" aria-hidden="true"></i></a>
+  </header>
+  <aside class="sidebar" id="sidebar"><nav id="main-nav" aria-label="导航"></nav></aside>
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <div class="workspace"><main id="main" tabindex="-1"></main></div>
+  <dialog id="import-dialog" class="modal import-modal" aria-labelledby="import-title">
+    <h2 id="import-title"><i class="mdi mdi-earth" aria-hidden="true"></i>选择世界导出文件</h2>
+    <div class="modal-content">
+      <div class="import-tips"><i class="mdi mdi-information" aria-hidden="true"></i><p>选择主导出文件（legends.xml），并同时选择同次导出的 legends_plus.xml 和地图图片。</p></div>
+      <label class="file-field" id="drop-zone"><span>世界导出文件</span><input type="file" id="file-input" accept=".xml,.png,.jpg,.jpeg,.bmp,.webp" multiple></label>
+      <div id="selected-files"></div>
+      <div class="import-progress" id="import-progress" hidden><div><span id="progress-text">正在载入世界…</span><span id="progress-value">0%</span></div><progress id="progress-bar" value="0" max="100"></progress></div>
+      <p id="import-error" class="inline-error" role="alert" hidden></p>
+    </div>
+    <div class="modal-footer"><button class="button button-ghost" id="close-import">关闭</button><button class="button button-primary" id="start-import" disabled>载入世界</button></div>
+  </dialog>
+  <dialog id="filter-dialog" class="modal filter-modal" aria-labelledby="filter-title"><div class="filter-header"><div><h2 id="filter-title">筛选设置</h2><p id="filter-subtitle"></p></div><button class="icon-button" id="clear-filters" aria-label="清除筛选"><i class="mdi mdi-filter-off-outline" aria-hidden="true"></i></button></div><div class="modal-content" id="filter-fields"></div><div class="modal-footer"><button class="button button-ghost" id="cancel-filter">取消</button><button class="button button-primary" id="apply-filter">应用</button></div></dialog>
+  <dialog id="expanded-dialog" class="modal expanded-modal" aria-label="展开"><div id="expanded-content"></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <noscript>请启用 JavaScript。</noscript>
+</body>
+</html>

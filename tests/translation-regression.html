@@ -1,0 +1,103 @@
+<!doctype html><meta charset="utf-8"><title>Translation regression</title>
+<script src="../js/data.js"></script><script src="../js/translation-data.js"></script><script src="../js/translation-phonetics.js"></script><script src="../js/translate.js"></script><script src="../js/translation-ui-data.js"></script><script src="../js/translation-ui.js"></script><script src="../js/translation-item-data.js"></script><script src="../js/item-translate.js"></script><script src="../js/filters.js"></script><script src="../js/upstream-ui.js"></script><script src="../js/records.js"></script><pre id="result">Running</pre>
+<script>
+window.translationTests=(async()=>{await DFTranslate.ready;let checks=0;const failed=[],equal=(actual,expected,note)=>{checks++;if(actual!==expected)failed.push({note,actual,expected});};
+for(let i=0;i<DFCN_UI.skills.length;i++){const row=DFCN_UI.skills[i],value=DFTranslate.skill(row[0],18000);equal(value.name,row[5],'skill '+row[0]);equal(value.token,row[2],'skill token');equal(value.rankSource,'Legendary','skill rank');if(/[a-z]/i.test(value.name))failed.push({note:'Untranslated skill',value});}
+for(let i=0;i<DFCN_UI.cutoffs.length;i++){const n=DFCN_UI.cutoffs[i];equal(DFTranslate.skill('MINING',n).rankSource,DFCN_UI.ranks[i],'rank lower boundary '+n);equal(DFTranslate.skill('MINING',n-1).rankSource,DFCN_UI.ranks[i+1]||'Unknown','rank upper boundary '+n);}
+for(const[kind,def]of Object.entries(LegendsUI.categories)){equal(/[\u4e00-\u9fff]/.test(def.title),true,'category title '+kind);for(const header of def.tableHeaders||[])equal(/[a-z]/i.test(header.title)&&!['Id','ID'].includes(header.title),false,'column title '+kind+'.'+header.key);}
+for(const type of Object.keys(DFCN_UI.events)){equal(/[a-z]/i.test(DFTranslate.eventLabel(type)),false,'event label '+type);}
+for(const [source,target]of Object.entries(DFCN_UI.domains.sphere)){equal(DFTranslate.sphere(source),target,'DFCN r sphere '+source);equal(DFTranslate.term(source.toUpperCase(),{domain:'sphere'}),target,'typed sphere '+source);}
+const screenshotSpheres={disease:'疾病',murder:'谋杀',rain:'雨',lightning:'闪电',thunder:'雷鸣',blight:'枯萎',death:'死亡',light:'光明',longevity:'长寿',minerals:'矿物',strength:'力量',muck:'污泥',birth:'诞生',animals:'动物',plants:'植物',rivers:'河流',nature:'自然',theft:'盗窃',metals:'金属',war:'战争',caverns:'洞窟',water:'水',nightmares:'噩梦',mountains:'山峦',depravity:'堕落',chaos:'混沌',torture:'折磨',games:'游戏',fortresses:'堡垒'};
+for(const [source,target]of Object.entries(screenshotSpheres))equal(DFTranslate.term(source,'sphere'),target,'screenshot sphere '+source);
+equal(DFTranslate.sphere('the disease, murder, and rain'),'疾病、谋杀和雨','native sphere list');
+equal(DFTranslate.sphere('the mountains and the muck'),'山峦和污泥','sphere namespace before ordinary nouns');
+equal(DFTranslate.sphere(['LIGHTNING','THUNDER']),'闪电、雷鸣','XML sphere array');
+equal(DFTranslate.sphere('a made up sphere'),'a made up sphere','unknown sphere preserved');
+for(const [source,target]of Object.entries({Forest:'森林',Grassland:'草原',Wetland:'湿地',Hills:'丘陵',Desert:'沙漠'})){equal(DFTranslate.term(source,{domain:'terrain'}),target,'screenshot terrain '+source);equal(DFTranslate.term(source),target,'legacy terrain caller '+source);}
+equal(DFTranslate.term('civilization',{domain:'entityType'}),'政权','DFCN civilization type');
+equal(DFTranslate.term('kobold',{domain:'creature'}),'狗头人','DFCN creature type');
+equal(DFTranslate.term('kobolds',{domain:'race'}),'狗头人','DFCN plural race');
+const creatureRawCases={JURASSIC_AFROVENATOR:'强颈猎龙',CENOZOIC_ENTELODON:'完齿兽',BIRD_ROC:'大鹏鸟',COLOSSUS_BRONZE:'青铜巨像',BIRD_BLUEJAY:'冠蓝鸦',BIRD_PENGUIN_EMPEROR:'帝企鹅',BIRD_FALCON_PEREGRINE:'游隼',BIRD_RW_BLACKBIRD:'红翅黑鹂',GIANT_RW_BLACKBIRD:'巨型红翅黑鹂',DRAGON:'巨龙'};
+for(const [raw,target]of Object.entries(creatureRawCases)){
+ for(const source of [raw,raw.toLowerCase(),raw.replaceAll('_',' '),raw.toLowerCase().replaceAll('_',' '),' '+raw.replaceAll('_','   ')+' ']){
+  equal(DFTranslate.term(source,'creature'),target,'DFCN creature RAW identifier '+source);
+  equal(DFTranslate.term(source,{domain:'race'}),target,'shared race entry '+source);
+ }
+ const rule={propertyName:'Race',operator:'Equals',value:raw},record={id:900,race:raw},before=JSON.stringify({rule,record});
+ equal(LegendsFilters.matches(record,'figures',[rule],{world:{figures:[record]}}),true,'raw creature filter value remains comparable '+raw);
+ equal(JSON.stringify({rule,record}),before,'display translation leaves raw filter/source unchanged '+raw);
+}
+for(const source of ['MOD_BIRD_ROC','COLOSSUS_BRONZE_MOD','MOD_JURASSIC_AFROVENATOR','CENOZOIC_ENTELODON_MOD','D_O_G','UNKNOWN_MOD_CREATURE'])equal(DFTranslate.term(source,'creature'),source,'unknown mod creature preserved '+source);
+equal(DFTranslate.term('rocs','creature'),'大鹏鸟','reviewed creature plural');
+equal(DFTranslate.term('bronze colossuses',{domain:'species'}),'青铜巨像','reviewed species plural');
+equal(DFTranslate.term('sitegovernment',{domain:'entityType'}),'地区政府','DFCN entity type camel identifier');
+// Cached ranking subtitles were produced before display localization. Exercise
+// the actual Records renderer with only cached summaries, without raw HF rows.
+const cachedSphereCases=[
+ {subtitle:'领域：disease、murder、rain',record:{},expected:'领域：疾病、谋杀、雨'},
+ {subtitle:'领域：lightning，thunder',record:{},expected:'领域：闪电、雷鸣'},
+ {subtitle:'领域：mountains、muck',record:{sphere:[]},expected:'领域：山峦、污泥'},
+ {subtitle:'领域：nightmares，games',record:{spheres:[]},expected:'领域：噩梦、游戏'},
+ {subtitle:'领域：疾病、murder，雨',record:{},expected:'领域：疾病、谋杀、雨'},
+ {subtitle:'sphere: the disease, murder, and rain',record:{},expected:'领域：疾病、谋杀和雨'},
+ {subtitle:'领域：nightmares、games',record:{sphere:['mountains','muck']},expected:'领域：山峦、污泥'},
+ {subtitle:'领域：nightmares、games',record:{sphere:['disease、murder','rain，lightning']},expected:'领域：疾病、谋杀、雨、闪电'},
+ {subtitle:'领域：a mod sphere、muck',record:{},expected:'领域：a mod sphere、污泥'},
+ {subtitle:'领域：<img src=x onerror=alert(1)>、rain',record:{},expected:'领域：<img src=x onerror=alert(1)>、雨'}
+];
+const cachedEntries=cachedSphereCases.map((row,index)=>({kind:'figures',id:101+index,record:{id:101+index,name:'Test '+index,...row.record},value:100-index,display:String(100-index),subtitle:row.subtitle}));
+const cachedWorld={name:'Translation regression',year:120,disk:{format:'file-index',aggregates:{records:{entries:{top_slayers:cachedEntries}}}}};
+const cachedBefore=JSON.stringify(cachedWorld),recordsHost=document.createElement('div');recordsHost.hidden=true;document.body.appendChild(recordsHost);
+const destroyRecords=LegendsRecords.render(recordsHost,cachedWorld,{name:record=>'人物 '+record.id,term:(value,scope)=>DFTranslate.term(value,scope)});
+const cachedSubtitles=Array.from(recordsHost.querySelectorAll('[data-record-card="top_slayers"] .record-subtitle'),node=>node.textContent);
+equal(cachedSubtitles.length,cachedSphereCases.length,'cached sphere ranking rows');
+for(let index=0;index<cachedSphereCases.length;index++)equal(cachedSubtitles[index],cachedSphereCases[index].expected,'cached Records sphere '+index);
+equal(recordsHost.querySelectorAll('.record-subtitle img').length,0,'cached subtitle stays escaped');
+equal(JSON.stringify(cachedWorld),cachedBefore,'display translation leaves cached source unchanged');
+destroyRecords();recordsHost.remove();
+const labels={figures:{1:'乌瑞斯特',2:'多马斯'},sites:{3:'金锤堡'},entities:{4:'铜矛王国'},artifacts:{5:'银刃'}};
+const context={includeDate:false,debug:true,link:(kind,id)=>'<a data-kind="'+kind+'" data-id="'+id+'">'+(labels[kind]?.[id]||kind+' #'+id)+'</a>'};
+const cases=[{type:'hf died',hfid:1,slayer_hfid:2,cause:'struck',site_id:3},{type:'created site',civ_id:4,site_id:3},{type:'add hf entity link',hfid:1,civ_id:4,link_type:'member'},{type:'artifact created',hfid:1,artifact_id:5,site_id:3},{type:'hf travel',group_hfid:1,site_id:3},{type:'written content composed',hist_figure_id:1,wc_id:5,site_id:3}];
+const allEvents=Object.entries(DFCN_UI.events).map(([type,schema])=>{const row={type,year:120,hfid:1,histfig:1,hist_figure_id:1,civ:4,civ_id:4,entity:4,entity_id:4,site:3,site_id:3,link_type:'member',position:'king',old_race:'DWARF',new_race:'GOBLIN',cause:'struck',old_job:'miner',new_job:'mason',state:'settled',reason:'force of argument',artifact_id:5,form_id:5,wc_id:5,account_shift:1000,secret_goal:'immortality',subtype:'attacked',action:'bribe official',method:'bribe',crime:'theft',knowledge:'astronomy:the stars',quality:'masterwork',abuse_type:'flayed',bodies:[1,2],rescued_hfid:[1],item_type:'book',mat:'gold',modification:'statue',theft_method:'stolen',situation:'a strongly favored',a_tactics_roll:200,d_tactics_roll:10,improvement_type:'art image',improvement_mat:'gold',d_number:20,d_slain:5};for(const [role,[kind,...keys]]of Object.entries(schema.bindings))for(const key of keys)row[key]=({figures:1,entities:4,sites:3,artifacts:5,regions:3,undergroundregions:3,constructions:5,writtencontents:5}[kind]||5);if(type.includes('hf site link'))row.link_type='home site abstract building';if(type.includes('hf hf link'))row.link_type='spouse';return DFTranslate.eventInfo(row,context);});
+const started=performance.now(),events=cases.map(e=>DFTranslate.eventInfo(e,context));for(let i=0;i<events.length;i++){equal(events[i].translated,true,'event prose '+cases[i].type);equal(events[i].html.includes('<script'),false,'HTML safety');}
+equal(DFTranslate.narrative('<script>alert(1)<\/script>'),'&lt;script&gt;alert(1)&lt;/script&gt;','source HTML escape');
+equal(DFTranslate.collectionName({id:1,type:'beast attack',ordinal:2,raw:{type:'beast attack'}}),'第2次肆虐','source collection title');
+for(const [raw,target]of Object.entries(creatureRawCases))for(const source of [raw,raw.toLowerCase(),raw.replaceAll('_',' '),raw.toLowerCase().replaceAll('_',' ')]){
+ const event={type:'hf died',hfid:1,slayer_hf:-1,slayer_race:source,cause:'struck',site_id:3},before=JSON.stringify(event),value=DFTranslate.eventInfo(event,context);
+ equal(value.translated,true,'anonymous HF died sentence translates '+source);
+ equal(value.html.includes(target),true,'anonymous HF died creature RAW maps through typed event atom '+source);
+ equal(value.html.includes(source),false,'anonymous HF died hides known English RAW '+source);
+ equal(JSON.stringify(event),before,'event translation preserves raw slayer data '+source);
+}
+
+const scopedCreatureCases=[
+ {note:'changed creature type',xml:'<type>changed creature type</type><changer_hfid>2</changer_hfid><changee_hfid>1</changee_hfid><old_race>BIRD_ROC</old_race><new_race>JURASSIC_AFROVENATOR</new_race>',required:['大鹏鸟','强颈猎龙'],absent:['BIRD_ROC','JURASSIC_AFROVENATOR']},
+ {note:'hf new pet pets',xml:'<type>hf new pet</type><group_hfid>1</group_hfid><pets>CENOZOIC_ENTELODON</pets>',required:['完齿兽'],absent:['CENOZOIC_ENTELODON']},
+ {note:'hf new pet pet alias',xml:'<type>hf new pet</type><group_hfid>1</group_hfid><pet>jurassic_afrovenator</pet>',required:['强颈猎龙'],absent:['jurassic_afrovenator']},
+ {note:'devoured race with optional generic caste',xml:'<type>creature devoured</type><eater>1</eater><race>CENOZOIC_ENTELODON</race><caste>female</caste>',required:['完齿兽',DFTranslate.term('female')],absent:['CENOZOIC_ENTELODON']},
+ {note:'devoured victim_race preferred alias',xml:'<type>creature devoured</type><eater>1</eater><victim_race>JURASSIC_AFROVENATOR</victim_race><race>CENOZOIC_ENTELODON</race>',required:['强颈猎龙'],absent:['JURASSIC_AFROVENATOR','完齿兽']},
+ {note:'devoured historical Victim precedes anonymous species',xml:'<type>creature devoured</type><eater>1</eater><victim>2</victim><victim_race>JURASSIC_AFROVENATOR</victim_race><caste>female</caste>',required:['多马斯','data-id="2"'],absent:['强颈猎龙','JURASSIC_AFROVENATOR']},
+ {note:'devoured absent race and victim keeps original unknown',xml:'<type>creature devoured</type><eater>1</eater>',required:[DFTranslate.term('unknown historical figure')],absent:['强颈猎龙','完齿兽']},
+ {note:'devoured caste alone cannot invent a species',xml:'<type>creature devoured</type><eater>1</eater><caste>female</caste>',required:[DFTranslate.term('unknown historical figure')],absent:[DFTranslate.term('female')]},
+];
+const creatureScopes=[];
+for(const [index,sample]of scopedCreatureCases.entries()){
+ const record=await LegendsData.parseRecord('<historical_event><id>'+String(500+index)+'</id>'+sample.xml+'</historical_event>','historical_events'),before=JSON.stringify(record),value=DFTranslate.eventInfo(record,context);
+ for(const required of sample.required){equal(value.source.includes(required),true,'actual XML creature source scope '+sample.note+' / '+required);equal(value.html.includes(required),true,'actual XML creature DOM output includes '+sample.note+' / '+required);}
+ for(const absent of sample.absent)equal(value.source.includes(absent),false,'actual XML creature scope omits '+sample.note+' / '+absent);
+ equal(value.complete,true,'source branch complete '+sample.note);
+ equal(value.translated,true,'source sentence translated '+sample.note);
+ equal(JSON.stringify(record),before,'scoped creature display leaves original XML unchanged '+sample.note);
+ creatureScopes.push({note:sample.note,source:value.source,html:value.html});
+}
+const modSlayer={type:'hf died',hfid:1,slayer_hf:-1,slayer_race:'MOD_JURASSIC_AFROVENATOR',cause:'struck'};
+equal(DFTranslate.eventInfo(modSlayer,context).html.includes('MOD_JURASSIC_AFROVENATOR'),true,'unreviewed mod anonymous slayer remains unchanged');
+
+equal(DFTranslate.description('This is a book.'),'这是书。','item description');
+const world={disk:{},sourceFiles:['legends.xml','legends_plus.xml'],figures:[],events:[],collections:[],sites:[],entities:[]};
+let r={id:1,__headerOnly:true};equal(LegendsFilters.assess(r,'figures',[{property:'IsVampire',value:true}],{world}).unknown[0],'IsVampire','header unknown');equal(LegendsFilters.assess(r,'entities',[{property:'WarCount',value:0}],{world}).unknown[0],'WarCount','empty disk groups incomplete');
+r={id:1,__headerOnly:false,active_interaction:['DEITY_MAJOR_CURSE']};equal(LegendsFilters.matches(r,'figures',[{property:'IsVampire',value:true}],{world}),true,'raw filter');
+r={id:1,__headerOnly:true,WarCount:3};equal(LegendsFilters.matches(r,'entities',[{property:'WarCount',operator:'GreaterThan',value:2}],{world}),true,'derived metrics');
+for(const row of allEvents){equal(row.complete,true,'source branch '+row.type);equal(row.translated,true,'source sentence '+row.type);}
+return {checks,failed,events,creatureScopes,elapsed:performance.now()-started,counts:DFTranslate.uiCounts,eventCoverage:{total:allEvents.length,branches:allEvents.filter(e=>e.complete).length,translated:allEvents.filter(e=>e.translated).length,untranslated:allEvents.filter(e=>!e.translated).map(e=>({type:e.type,source:e.source,html:e.html,debug:e.debug}))}};})().then(result=>{document.querySelector('#result').textContent=JSON.stringify(result,null,2);return result;});
+</script>

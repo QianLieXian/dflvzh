@@ -1,0 +1,4 @@
+cytoscape-cola 2.5.1
+Original upstream browser distribution, downloaded from https://registry.npmjs.org/cytoscape-cola
+Original project package-lock pins this version.
+Runtime loads only local files.

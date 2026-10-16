@@ -1,0 +1,65 @@
+DFCN English name pronunciation: traditional British RP target
+
+Primary dictionary: Britfone 3.0.1, Jose Llarena, MIT license.
+https://github.com/JoseLlarena/Britfone
+Pinned revision: 1062be14adc96c358f2087ac5449d72130c7a6f4
+britfone.csv is the unchanged britfone.main.3.0.1.csv; original README and license accompany it.
+The source is RP/Standard Southern British, including some modern vowel symbols.
+The DFCN adapter normalizes IPA symbols, weak short happy /i/ to traditional /ɪ/, non-rhotic
+vowels, long BATH, and centering diphthongs. This does not turn modern vocabulary into Old English.
+
+Supplemental British dictionary: English (UK) MFA dictionary v3.1.0,
+Michael McAuliffe and Morgan Sonderegger (2024), CC BY 4.0.
+https://mfa-models.readthedocs.io/en/latest/dictionary/English/English%20(UK)%20MFA%20dictionary%20v3_1_0.html
+https://github.com/MontrealCorpusTools/mfa-models/releases/download/dictionary-english_uk_mfa-v3.1.0/english_uk_mfa.dict
+Retained unchanged. Entries contain either spelling and phones, or an additional four numeric
+columns (pronunciation probability and silence statistics/corrections); these are not phone symbols.
+The DFCN adapter reduces phonetic allophones to a citation-style RP phone inventory.
+
+Unknown-word model: English (UK) MFA G2P v3.0.0, trained with British dictionary words,
+Michael McAuliffe and Morgan Sonderegger, CC BY 4.0.
+https://github.com/MontrealCorpusTools/mfa-models/releases/download/g2p-english_uk_mfa-v3.0.0/english_uk_mfa.zip
+The unchanged model.fst, graphemes.sym, phones.sym and meta.json are retained with descriptive filenames.
+MFA-LICENSE.txt is the original CC BY 4.0 license from the repository at
+d6eff86a42c6a90b641e17dfdf7a16555b934483. The model evaluation fields are null;
+no accuracy claim is made from them. DFCN uses its own read-only OpenFST-format decoder,
+without installing or linking Phonetisaurus, Pynini, OpenFST or a speech synthesizer.
+
+Complete British word pronunciations precede morphological resolution, supplied DF WORD
+boundaries and UK model predictions. DF WORD/POS information selects homographs and supplies
+only existing legal compound boundaries; it never reconstructs or reorders the English input.
+Unknown words are not segmented by searching arbitrary dictionary substrings or guessed affixes.
+MFA alternatives use a fixed priority: unreduced citation forms, source pronunciation probability,
+then original source order. Phone counts and Chinese output lengths do not select a reading.
+English generated-name fallback has no target number of syllables or Chinese characters.
+Conventional complete transcriptions precede phone rendering. Campbell, Panorama and Snow Hill
+use the explicit forms documented by the China Institute of Toponymy in its 2011 UNGEGN paper;
+Hampton and field retain the original fallback plan's complete transcriptions.
+All content components stay in source order, including middle words. In a text-only name with
+other content, naming particles the/of may be omitted following Wan and Verspoor (1998);
+a/an use the same article policy as an engineering extension. Other prepositions/conjunctions
+are not removed wholesale, and explicit DF content-word POS slots are always retained.
+An input containing only particles retains them instead of selecting one arbitrary final word.
+Britfone's real primary/secondary stress and weak-vowel notation guide pronunciation mapping,
+not syllable selection. The stressless MFA dictionary/model do not fabricate stress from vowel
+length, quality or position. Unmarked STRUT /ʌ,ɐ/ remains a full vowel.
+Exact unknown compounds may expose native WORD roots for pronunciation; known whole words
+retain dictionary priority. Word-initial consonant groups and consecutive syllables are not
+cut down to a nearest consonant or a few isolated vowel anchors.
+Compact output comes from complete CV/nasal combinations, weak-vowel+coda forms and familiar
+group approximations such as final ts/dz and kw/gw/ju. Weak dən and tən remain distinct 登/顿.
+Actual coda m before p/b may use the preceding syllable's n rhyme while preserving the following
+stop; an onset m or other coda m retains its original mapping. This limited adaptation follows
+the environment reported by Huang and Lin (2016), not a rule to remove all m sounds.
+https://journals.linguisticsociety.org/proceedings/index.php/amphonology/article/view/3686
+No generic truncation of weak syllables or guessed derivational roots is performed. Without an
+attested natural short form, a more complete approximation is retained. This does not require
+lossless sound preservation, promise that every name will be short, or claim naturalness for
+every model prediction. No already-rendered Hanzi string is clipped to a character limit.
+This pronunciation/transcription policy applies only to confirmed English source fields. Native DF
+language spellings retain their existing independent processing and transcription tables;
+Latin letters alone are not evidence that a generated name is English.
+English/Chinese syllabification: https://aclanthology.org/P98-2220/
+Chinese rendering is a deterministic engineering approximation; it is not the complete GB/T table.
+English IPA reference: https://www.oxfordlearnersdictionaries.com/about/pronunciation_english
+Chinese transcription principles: https://unstats.un.org/unsd/geoinfo/ungegn/docs/26th-gegn-docs/WP/WP36_Brief%20Introduction%20of%20Foreign%20Geographical%20Names%20Transformed%20into%20Chinese.pdf

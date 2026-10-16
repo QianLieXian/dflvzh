@@ -1,0 +1,36 @@
+<!doctype html><meta charset="utf-8"><title>Browser parser regression</title><p>选择小型 legends.xml / legends_plus.xml fixture 后运行浏览器回归。</p><input type="file" multiple id="files"><button id="run">运行测试</button><pre id="results"></pre><script src="../js/data.js"></script><script>
+window.testSuite=async function(files){
+ if(!files.length||files.reduce((sum,file)=>sum+file.size,0)>16*1024*1024)throw Error('回归对照使用 16 MiB 以内的 XML fixture；多 GB 有界内存压测见 parser-stress.js。');
+ const checks=[]; const assert=(condition,label)=>{if(!condition)throw Error(label);checks.push(label)};
+ const normal=await LegendsData.parseFiles(files);
+ const entries=[],metas=[];
+ const streamed=await LegendsData.parseFilesStream(files,{onBatch:async batch=>{assert(batch.length<=256,'batch<=256');entries.push(...batch)},onMetadata:(key,value)=>metas.push([key,value])});
+ const lookup=new Map();
+ for(const entry of entries){
+  const destination=entry.group?streamed[entry.group]:(streamed.extra[entry.section]||(streamed.extra[entry.section]=[]));
+  const key=entry.section+':'+(entry.record.id===undefined?(entry.record.name?'name:'+entry.record.name:'row:'+entries.indexOf(entry)):entry.record.id);
+  if(lookup.has(key))LegendsData.mergeRecord(lookup.get(key),entry.record,entry.group==='events');
+  else{ if(!entry.group)entry.record['@tag']=entry.tag;lookup.set(key,entry.record);destination.push(entry.record); }
+ }
+ delete streamed.counts;delete streamed.importCounts;
+ LegendsData.normalizeWorld(streamed);
+ function diff(a,b,path='world') { if(a===b)return null;if(a&&b&&typeof a==='object'&&typeof b==='object'){const ak=Object.keys(a).sort(),bk=Object.keys(b).sort();if(JSON.stringify(ak)!==JSON.stringify(bk))return {path,keysA:ak,keysB:bk};for(const key of ak){const d=diff(a[key],b[key],path+'.'+key);if(d)return d}return null}return {path,a,b}; }
+ const difference=diff(normal,streamed);if(difference)throw Error(JSON.stringify(difference));assert(true,'real file full/stream parity');
+ const worker=new Worker(URL.createObjectURL(new Blob([LegendsData.workerSource,'self.onmessage=async event=>{try{let count=0,maxBatch=0;const world=await LegendsData.parseFilesStream(event.data,{onBatch:async batch=>{count+=batch.length;maxBatch=Math.max(maxBatch,batch.length)}});self.postMessage({ok:true,count,maxBatch,name:world.name,width:world.width});}catch(error){self.postMessage({ok:false,message:error.stack})}};'],{type:'text/javascript'})));
+ const result=await new Promise((resolve,reject)=>{worker.onmessage=e=>resolve(e.data);worker.onerror=reject;worker.postMessage(files)});worker.terminate();
+ assert(result.ok&&result.count===entries.length,'file:// BlobWorker parser');
+ const abort=new AbortController();let aborted=false;
+ try{await LegendsData.parseFilesStream(files,{signal:abort.signal,onBatch:async()=>abort.abort()})}catch(error){aborted=error.name==='AbortError'}
+ assert(aborted,'stream AbortSignal');
+ const canvas=document.createElement('canvas');canvas.width=1;canvas.height=1;const png=Uint8Array.from(atob(canvas.toDataURL('image/png').split(',')[1]),x=>x.charCodeAt(0));
+ const cp437=Array.from('ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ').join('');
+ const cpXML='<?xml version="1.0" encoding="CP437"?><df_world><sites><site><id>1</id><name>x'+Array.from({length:128},(_,index)=>String.fromCharCode(128+index)).join('')+'x</name></site></sites></df_world>';
+ const cpFile=new File([Uint8Array.from(cpXML,x=>x.charCodeAt(0))],'CP437-legends.xml');
+ const cpWorld=await LegendsData.parseFiles([cpFile]);assert(cpWorld.sites[0].raw.name==='x'+cp437+'x','native CP437 decoding preserves all 128 high bytes');
+ let invalidUtf8Rejected=false;try{await LegendsData.parseFiles([new File([new TextEncoder().encode('<df_world><sites><site><name>'),new Uint8Array([0xc3,0x28]),new TextEncoder().encode('</name></site></sites></df_world>')],'invalid.xml')])}catch(_){invalidUtf8Rejected=true}assert(invalidUtf8Rejected,'invalid UTF-8 rejects');
+ const withImage=await LegendsData.parseFilesStream([files[0],new File([png],'map.png',{type:'image/png'})],{onBatch(){}});
+ assert(withImage.mapImage.startsWith('data:image/png;base64,')&&withImage.mapImageWidth===1&&withImage.mapImageHeight===1,'persistent image data URL');
+ return {ok:true,checks:checks.length,figures:normal.figures.length,sites:normal.sites.length,entities:normal.entities.length,events:normal.events.length,worker:result};
+};
+document.querySelector('#run').onclick=async()=>{const output=document.querySelector('#results');output.textContent='运行中…';try{output.textContent=JSON.stringify(await testSuite([...document.querySelector('#files').files]),null,2)}catch(error){output.textContent=error.stack}};
+</script>

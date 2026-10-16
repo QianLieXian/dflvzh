@@ -1,0 +1,156 @@
+{
+  "source": "Kromtec/LegendsViewer-Next",
+  "frontendRoot": "LegendsViewer.Frontend/legends-viewer-frontend/src/",
+  "fontOverride": {
+    "bodyAndNodes": 16,
+    "secondaryAndAxes": 14
+  },
+  "entries": [
+    {
+      "view": "World",
+      "component": "DoughnutChart.vue",
+      "charts": [
+        "populationByRace",
+        "regionArea"
+      ],
+      "rules": [
+        "WorldDto opaque race/region border colors",
+        "background alpha 0.2",
+        "border radius 4 and spacing 4",
+        "legend right"
+      ],
+      "validation": "browser-pages world charts and visual-components doughnut"
+    },
+    {
+      "views": [
+        "Site",
+        "War",
+        "Battle"
+      ],
+      "component": "DoughnutChart.vue",
+      "charts": [
+        "deathsByRace"
+      ],
+      "rules": [
+        "named historical deaths plus battle squad deaths",
+        "World.MainRaces color or SlateGray fallback",
+        "same Chart.js doughnut as World"
+      ],
+      "validation": "browser-pages battle total23; visual-components named+squad split"
+    },
+    {
+      "views": "World and every WorldObjectPage",
+      "component": "LineChart.vue",
+      "charts": [
+        "eventsByYear"
+      ],
+      "rules": [
+        "fill true",
+        "border rgb(75,192,192)",
+        "background alpha0.2",
+        "tension0.2",
+        "compact maximum160"
+      ],
+      "validation": "browser-pages native line and expanded event filter"
+    },
+    {
+      "views": "World and every WorldObjectPage expanded events",
+      "component": "BarChart.vue",
+      "charts": [
+        "eventsByType"
+      ],
+      "rules": [
+        "indexAxis y",
+        "active teal fill alpha0.6",
+        "excluded gray fill alpha0.2 border alpha0.3",
+        "checkbox exclusion applies line and table"
+      ],
+      "validation": "browser-pages event fullscreen indexAxis/exclusion/bar color"
+    },
+    {
+      "view": "Entity",
+      "component": "WarfareGraph.vue",
+      "charts": [
+        "warGraphData"
+      ],
+      "rules": [
+        "Cytoscape Cola",
+        "only Wars edges",
+        "attacker→defender",
+        "death width floor(deaths/10), clamp1..15",
+        "MainRaces colors via civ parents",
+        "source civilization compound nodes",
+        "current entity orange dashed"
+      ],
+      "validation": "visual-components nodes/colors/edge width/tooltip/click; browser-pages onlyWar/fullscreen/node cleanup"
+    },
+    {
+      "view": "War",
+      "component": "WarfareGraph.vue",
+      "charts": [
+        "battleGraphData"
+      ],
+      "rules": [
+        "same Cola layout",
+        "only Battles edges",
+        "attacked site event preferred over field battle",
+        "parent war fallback for sides"
+      ],
+      "validation": "browser-pages onlyBattle graph/fullscreen/edge route"
+    },
+    {
+      "view": "Entity",
+      "component": "MonarchTimeline.vue",
+      "charts": [
+        "primaryOnly",
+        "otherPositions"
+      ],
+      "rules": [
+        "source GetLeaderTimelines position ordering",
+        "newest holder first",
+        "civilization primary first card and remaining positions second",
+        "other entities all positions second",
+        "source position selector/current badge/lineage/lifespan/deathcause",
+        "compact480 expanded700 scroll"
+      ],
+      "validation": "visual-components lineage/date/sentinel/current/navigation; browser-pages both fullscreen and position switch"
+    },
+    {
+      "view": "HistoricalFigure",
+      "component": "FamilyTree.vue",
+      "charts": [
+        "familyTreeData"
+      ],
+      "rules": [
+        "Cytoscape Dagre",
+        "source maternal/paternal depth3",
+        "direct children",
+        "male blue/female magenta/current orange/dead opacity0.3",
+        "source5PNG leader/necromancer/vampire/werebeast/ghost",
+        "global world year for age"
+      ],
+      "validation": "visual-components5PNGs/leader/age; browser-pages fullscreen child navigation and cleanup"
+    },
+    {
+      "view": "Map",
+      "component": "Map.vue",
+      "charts": [
+        "ownerLayers",
+        "activeWarfare",
+        "objectFocus"
+      ],
+      "rules": [
+        "Leaflet1.9.4 CRS.Simple scale8 zoom-2..2",
+        "original geometric site markers",
+        "source4/16tile grid with no invented terrain",
+        "region RGB palette plus seeded .NET Random id variation",
+        "source HSV main race colors with C# integer truncation",
+        "source war arrows/battle markers/merged tile popups",
+        "source pulse highlight and All/None",
+        "coordinate thumbnail magenta mask and source yellow/red target rings",
+        "source full local MDI glyph mappings"
+      ],
+      "validation": "visual-components parent sites/colors/war arrows/SVG battle pulse/popup/location; 2324 owner layers and all 12000 overlapping battle IDs accessible; browser-pages map war focus and mobile overflow; real saved world 11352 battles/2324 owners startup and All/None/zoom/focus measured"
+    }
+  ]
+}

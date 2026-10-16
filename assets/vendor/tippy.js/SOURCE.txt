@@ -1,0 +1,4 @@
+tippy.js 6.3.7
+Original upstream browser distribution, downloaded from https://registry.npmjs.org/tippy.js
+Original project package-lock pins this version.
+Runtime loads only local files.
