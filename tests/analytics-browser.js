@@ -16,7 +16,7 @@ section('entities','entity',[{id:0,name:'Civilization',type:'civilization',race:
 section('regions','region',[{id:0,name:'Forest',type:'forest',evilness:'good',coords:'1,1|2,1|2,2'}]),
 section('underground_regions','underground_region',[{id:0,type:'cavern',depth:1,coords:'1,1|2,1'}]),
 section('artifacts','artifact',[{id:0,name:'Book',item:{item_type:'book',writing_written_content_id:0,page_number:50}}]),
-section('written_contents','written_content',[{id:0,title:'Treatise',author:3,form:'essay',page_start:0,page_end:49}]),
+section('written_contents','written_content',[{id:0,title:'Treatise',author:3,form:'essay',page_start:0,page_end:49},{id:1,title:'Commentary',reference:{type:'WRITTEN_CONTENT',id:0}}]),
 section('identities','identity',[{id:2,histfig_id:1},{id:3,histfig_id:1}]),
 section('rivers','river',[{id:0,name:'River',path:'1,1|2,1',end_pos:'2,2'}]),
 section('mountain_peaks','mountain_peak',[{id:0,name:'Peak',height:100,is_volcano:'',coords:'2,2'}]),
@@ -45,6 +45,50 @@ section('historical_event_collections','historical_event_collection',[
 {id:5,type:'theft',start_year:25,end_year:25,attacking_enid:1,event:8}
 ])].join('')+'</df_world>';}
 async function importIndexed(files){const session=await LegendsFastStore.createImport({files}),meta=await LegendsFileIndexer.indexFiles(files,{onBlock:session.writeBlock,onMetadata:session.metadata});return session.finish(meta);}
+async function copiedWorksRegression(){
+ const works=[
+  {id:0,title:'Often Stored',author:7},
+  {id:1,title:'Often Copied',author:7},
+  {id:2,title:'Second Work',author:7},
+  {id:3,title:'First Commentary',reference:[{type:'WRITTEN_CONTENT',id:1},{type:'WRITTEN_CONTENT',id:1},{type:'WRITTEN_CONTENT',id:3},{type:'ARTIFACT',id:0},{type:'WRITTEN_CONTENT',id:8}]},
+  {id:4,title:'Second Commentary',reference:[{type:'WRITTEN_CONTENT',id:1},{type:'written_content',id:2},{type:'WRITTEN_CONTENT',id:-1},{type:'WRITTEN_CONTENT',id:999},{type:'WRITTEN_CONTENT',id:''},{type:'UNKNOWN',id:0}]},
+  {id:5,title:'One Copy'},
+  {id:8,title:'Only Cited'}
+ ],artifacts=[{id:0,name:'History Book',writing:0},{id:10,name:'Anthology',item:{page_written_content_id:[1,1,2]}},{id:11,name:'Scroll',item:{writing_written_content_id:1}},{id:12,name:'Third Book',writing:5},{id:99,name:'Sword'}],events=[
+  ...Array.from({length:20},(_,id)=>({id,type:id%2?'artifact possessed':'artifact stored',artifact_id:0,site_id:0})),
+  {id:20,type:'artifact created',artifact_id:10},
+  {id:21,type:'artifact copied',artifact_id:10},
+  {id:22,type:'artifact copied',artifact_id:10,wc_id:1},
+  {id:23,type:'artifact copied',artifact_id:11},
+  {id:24,type:'artifact copied',artifact_id:12},
+  {id:25,type:'artifact copied',artifact_id:99},
+  {id:26,type:'artifact copied',artifact_id:999},
+  {id:27,type:'written content composed',wc_id:0}
+ ].map(event=>({...event,year:10})),xml='<df_world><name>Copies and Citations</name><year>20</year>'+section('historical_figures','historical_figure',[{id:7,name:'Author',birth_year:0,death_year:-1}])+section('artifacts','artifact',artifacts)+section('written_contents','written_content',works)+section('historical_events','historical_event',events)+'</df_world>',plus='<df_world><name>Copies and Citations</name>'+section('historical_events','historical_event',[{id:22,type:'artifact copied',artifact_id:10,dest_site_id:0}])+'</df_world>',disk=await importIndexed([new File([xml],'copies-legends.xml'),new File([plus],'copies-legends_plus.xml')]),memory=await LegendsData.parseXML(xml),expected='[[1,5],[2,3],[5,1],[8,1]]';
+ const ranking=world=>LegendsRecords.calculate(world).categories.flatMap(category=>category.cards).find(card=>card.id==='most_copied_works').entries;
+ const pairs=rows=>JSON.stringify(rows.map(row=>[row.id,row.value]));
+ assert(pairs(ranking(memory))===expected,'direct ranking counts copies and incoming citations rather than event history',ranking(memory));
+ for(const [mode,world]of[['disk',disk],['memory',memory]]){
+  const a=await LegendsFastStore.analytics(world),rows=ranking(world);
+  assert(pairs(rows)===expected,mode+' copy ranking deduplicates anthology contents, citations and paired event IDs',rows);
+  assert(rows[0].display==='5 次复制与引用'&&rows[0].detail==='复制：3 次；被其他作品引用：2 次',mode+' copy/citation total and breakdown are explicit',rows[0]);
+  assert(a.copiedWorksVersion===1&&!rows.some(row=>[0,3,4].includes(row.id)),mode+' storage, composition, outgoing and self references do not inflate popularity');
+ }
+ const a=disk.disk.aggregates,oldId=disk.disk.id,manifest=JSON.stringify(disk.disk.manifest),counts=JSON.stringify(a.counts),otherCards=()=>JSON.stringify(Object.fromEntries(Object.entries(a.records.entries).filter(([key])=>key!=='most_copied_works'))),unchangedCards=otherCards();
+ delete a.copiedWorksVersion;a.records.entries.most_copied_works=[{kind:'writtencontents',id:0,value:99,display:'99 个记录事件',record:{id:0,name:'Often Stored'}}];
+ let sourceReads=0;const slice=File.prototype.slice;File.prototype.slice=function(){sourceReads++;throw new Error('copy ranking migration must not read original XML');};
+ try{
+  let phases=[];await LegendsFastStore.analytics(disk,{progress:value=>phases.push(value.phase),onImportId:()=>{throw new Error('copy migration must not replace indexes');}});
+  assert(pairs(ranking(disk))===expected&&phases.includes('copied-works'),'old event-count cache migrates from existing headers');
+  assert(sourceReads===0&&disk.disk.id===oldId&&JSON.stringify(disk.disk.manifest)===manifest&&JSON.stringify(a.counts)===counts&&otherCards()===unchangedCards,'copy migration preserves source files, index ID, blocks, event counts and other rankings');
+  const db=await LegendsFastStore.database(),saved=await LegendsStorageValues.read(db,'derived',oldId);
+  assert(saved.version===5&&saved.aggregates.copiedWorksVersion===1&&pairs(saved.aggregates.records.entries.most_copied_works)===expected,'corrected copy ranking is persisted without a global analytics upgrade');
+  const restored=structuredClone(disk);delete restored.disk.aggregates;phases=[];await LegendsFastStore.analytics(restored,{progress:value=>phases.push(value.phase)});
+  assert(pairs(ranking(restored))===expected&&!phases.length&&sourceReads===0,'restored corrected cache skips migration and XML reads');
+ }finally{File.prototype.slice=slice;await LegendsFastStore.abortImport(oldId);}
+ const empty=await LegendsData.parseXML('<df_world><artifacts>'+node('artifact',artifacts[0])+'</artifacts>'+section('written_contents','written_content',[works[0]])+section('historical_events','historical_event',events.slice(0,20))+'</df_world>');
+ assert(ranking(empty).length===0,'history-only works do not produce a copied-work record');
+}
 async function civilizationRaceRegression(){
  const entities=Array.from({length:8},(_,id)=>({id,name:'Civ '+id,type:id===6?'guild':'civilization',race:id===1?'elf':'unknown'})),figures=[
   {id:0,race:'DEMON_1',entity_position_link:{entity_id:0,start_year:1}},
@@ -212,6 +256,7 @@ const files=[...document.querySelector('#files').files];if(files.length){const p
 await conditionalReferencesRegression();
 await mainCivilizationRegression();
 await civilizationRaceRegression();
+await copiedWorksRegression();
 return {ok:true,checks:checks.length,labels:checks,rankings:cards.map(card=>({id:card.id,first:card.entries[0]?.value})),beats};
 }
 global.runAnalyticsRegression=run;global.analyticsFixture=fixture;

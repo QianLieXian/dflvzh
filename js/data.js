@@ -718,6 +718,44 @@
     return world;
   }
 
-  global.LegendsData = Object.freeze({ parseFiles, parseFilesStream, parseXML, parseRecord, normalizeWorld, normalizeRecord, normalizeArtForm, normalizeGeography, mergeRecord, readMapImage,
+  // Count explicit copy events and incoming citations, never a book's general
+  // event history. The same collector serves streamed indexes and small worlds.
+  function writtenWorkMetrics(works, artifacts) {
+    const rows = Array.from(works), counts = new Map(), artifactWorks = new Map();
+    const list = value => value == null ? [] : Array.isArray(value) ? value : [value];
+    const id = value => value !== '' && value != null && typeof value !== 'object' && Number.isSafeInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+    const fold = value => String(value ?? '').trim().toLowerCase().replace(/_/g, ' ');
+    const contentIds = record => {
+      const result = new Set();
+      for (const source of [record, record.item]) if (source && typeof source === 'object') {
+        for (const key of ['writing', 'written_content_id', 'written_content_ids', 'written_content', 'wc_id', 'page_written_content_id', 'writing_written_content_id']) {
+          for (const value of list(source[key])) { const target = id(value); if (target !== null && counts.has(target)) result.add(target); }
+        }
+      }
+      for (const ref of list(record.refs)) if (['written_contents', 'writtencontents'].includes(ref.kind)) {
+        const target = id(ref.id); if (target !== null && counts.has(target)) result.add(target);
+      }
+      return result;
+    };
+    for (const work of rows) { const target = id(work.id); if (target !== null) counts.set(target, {copies:0, references:0}); }
+    for (const work of rows) {
+      const targets = new Set();
+      for (const ref of list(work.reference)) if (ref && fold(ref.type) === 'written content') {
+        const target = id(ref.id); if (target !== null && target !== id(work.id) && counts.has(target)) targets.add(target);
+      }
+      for (const target of targets) counts.get(target).references++;
+    }
+    for (const artifact of artifacts) { const target = id(artifact.id); if (target !== null) artifactWorks.set(target, contentIds(artifact)); }
+    return {counts, addCopy(event) {
+      if (fold(event.type) !== 'artifact copied') return;
+      const targets = contentIds(event), artifactIds = new Set();
+      for (const key of ['artifact_id', 'artifact']) for (const value of list(event[key])) { const target = id(value); if (target !== null) artifactIds.add(target); }
+      for (const ref of list(event.refs)) if (ref.kind === 'artifacts') { const target = id(ref.id); if (target !== null) artifactIds.add(target); }
+      for (const artifact of artifactIds) for (const target of artifactWorks.get(artifact) || []) targets.add(target);
+      for (const target of targets) counts.get(target).copies++;
+    }};
+  }
+
+  global.LegendsData = Object.freeze({ parseFiles, parseFilesStream, parseXML, parseRecord, normalizeWorld, normalizeRecord, normalizeArtForm, normalizeGeography, mergeRecord, readMapImage, writtenWorkMetrics,
     workerSource: '(' + legendsDataRuntime.toString() + ')(self);' });
 })(typeof globalThis !== 'undefined' ? globalThis : window);

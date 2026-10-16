@@ -65,6 +65,7 @@
       if(id==='shortest_reigns')rows.sort((a,b)=>a.value-b.value||a.id-b.id);
       else if(id==='devastating_rampages')rows.sort((a,b)=>b.deathCount-a.deathCount||b.eventCount-a.eventCount);
       else if(id==='notorious_syndicates')rows.sort((a,b)=>b.value-a.value||a.id-b.id);
+      else if(id==='most_copied_works')rows.sort((a,b)=>b.value-a.value||a.id-b.id);
       else rows.sort((a,b)=>b.value-a.value);
       return{id,title,english,icon,metric,metricEnglish,entries:rows.slice(0,10).map((entry,index)=>({...entry,rank:index+1}))};
     })}));
@@ -244,7 +245,12 @@
     entries.greatest_scholars=byCount(scholars,'figures',n=>n+' 次发现',figureSubtitle);
     const authorCounts=new Map();for(const work of works)increment(authorCounts,idOf(work,['author_hfid','author']));
     entries.prolific_authors=byCount(authorCounts,'figures',n=>n+' 部作品',figureSubtitle);
-    entries.most_copied_works=works.map(work=>{const count=eventCount('writtencontents',work),author=maps.figures.get(idOf(work,['author_hfid','author']));return row('writtencontents',work,count,count+' 个记录事件',author?'作者：'+named(author,'figures'):'佚名');}).filter(r=>r.value>0);
+    entries.most_copied_works=[];
+    if(works.length){
+      const writtenMetrics=global.LegendsData.writtenWorkMetrics(works,artifacts);
+      for(const event of events)writtenMetrics.addCopy(event);
+      entries.most_copied_works=works.map(work=>{const {copies,references}=writtenMetrics.counts.get(Number(work.id))||{copies:0,references:0},count=copies+references,author=maps.figures.get(idOf(work,['author_hfid','author','author_id']));return row('writtencontents',work,count,count+' 次复制与引用',author?'作者：'+named(author,'figures'):'佚名','复制：'+copies+' 次；被其他作品引用：'+references+' 次');}).filter(r=>r.value>0);
+    }
     const identities=get('identities'),identityCounts=new Map();for(const identity of identities)increment(identityCounts,idOf(identity,['histfig_id','nemesis_id']));
     entries.masters_of_disguise=figures.map(hf=>{
       const used=ids(hf.used_identity_id),defined=array(hf.identities??hf.identity).filter(v=>v&&typeof v==='object'),count=Math.max(used.length,defined.length,identityCounts.get(Number(hf.id))||0);

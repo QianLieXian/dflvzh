@@ -721,9 +721,9 @@
     entry.promise=repair;state.sourceRepairs.set(world.id,entry);toast('原文件已关联，正在后台修复本地缓存…');return repair;
   }
   async function restoreWorld(world,options) {
-    const previousId=world.disk?.id,previousVersion=world.disk?.aggregates?.version,previousRaceVersion=world.disk?.aggregates?.civilizationRacesVersion;
+    const previousId=world.disk?.id,previousVersion=world.disk?.aggregates?.version,previousRaceVersion=world.disk?.aggregates?.civilizationRacesVersion,previousCopiedWorksVersion=world.disk?.aggregates?.copiedWorksVersion;
     await setWorld(world,options);
-    if(world.disk&&(world.disk.id!==previousId||world.disk.aggregates?.version!==previousVersion||world.disk.aggregates?.civilizationRacesVersion!==previousRaceVersion))await queueWorldSave(world);
+    if(world.disk&&(world.disk.id!==previousId||world.disk.aggregates?.version!==previousVersion||world.disk.aggregates?.civilizationRacesVersion!==previousRaceVersion||world.disk.aggregates?.copiedWorksVersion!==previousCopiedWorksVersion))await queueWorldSave(world);
   }
   async function startImport() {
     if(state.importing||!state.files.length)return;

@@ -543,7 +543,7 @@
       if(record)(output[ref.kind]||(output[ref.kind]=[])).push(record);
     },options.signal);return output;
   }
-  const ANALYTICS_VERSION=5,CIVILIZATION_RACES_VERSION=1,analyticsTasks=new WeakMap();
+  const ANALYTICS_VERSION=5,CIVILIZATION_RACES_VERSION=1,COPIED_WORKS_VERSION=1,analyticsTasks=new WeakMap();
   // EntityLink's last start_year/end_year/link_type property determines Type.
   // Former positions and ordinary membership never establish a civ's race.
   function currentPosition(link){
@@ -561,6 +561,29 @@
     for(const id of civilizationPositionIds(figure)){const entity=entities.get(id);if(entity?.IsCiv&&unknownRace(entity.race))entity.race=race;}
   }
   async function saveDerived(world,aggregates){const packed=await packValue({importId:world.disk.id,version:ANALYTICS_VERSION,aggregates}),db=await database(world.disk.dbName||CURRENT_DATABASE);if(db.objectStoreNames.contains('derived')){const tx=db.transaction('derived','readwrite'),saved=done(tx);tx.objectStore('derived').put(packed);await saved;}}
+  function copiedWorkRecords(aggregates,works,metrics){
+    const entries=[];
+    for(const work of works){
+      const {copies,references}=metrics.counts.get(Number(work.id))||{copies:0,references:0},value=copies+references;if(!value)continue;
+      let at=entries.findIndex(entry=>value>entry.value||value===entry.value&&Number(work.id)<entry.id);if(at<0)at=entries.length;if(at>=10)continue;
+      const author=aggregates.authorNames?.[factId(work,'author_hfid','author','author_id')];
+      entries.splice(at,0,{kind:'writtencontents',id:Number(work.id),record:summary(work,'written_contents'),value,display:value+' 次复制与引用',subtitle:author?'作者：'+author:'佚名',detail:'复制：'+copies+' 次；被其他作品引用：'+references+' 次'});if(entries.length>10)entries.pop();
+    }
+    aggregates.records.entries.most_copied_works=entries;
+    aggregates.copiedWorksVersion=COPIED_WORKS_VERSION;
+  }
+  async function copiedWorks(world,aggregates,options={}){
+    if(aggregates.copiedWorksVersion===COPIED_WORKS_VERSION)return civilizationRaces(world,aggregates,options);
+    options.progress?.({phase:'copied-works',message:'正在更新书籍复制与引用排行…'});
+    const works=[],artifacts=[];
+    await scan(world,'written_contents',header=>{works.push(header);},{signal:options.signal});
+    await scan(world,'artifacts',header=>{artifacts.push(header);},{signal:options.signal});
+    const metrics=global.LegendsData.writtenWorkMetrics(works,artifacts);
+    await scan(world,'events',header=>metrics.addCopy(header),{signal:options.signal,rawOnly:true});
+    check(options.signal);copiedWorkRecords(aggregates,works,metrics);
+    if(world.disk)await saveDerived(world,aggregates);
+    return civilizationRaces(world,aggregates,options);
+  }
   async function civilizationRaces(world,aggregates,options={}){
     if(aggregates.civilizationRacesVersion===CIVILIZATION_RACES_VERSION)return world.disk?applyAnalytics(world,aggregates):aggregates;
     const entities=new Map(),civs=new Set(list(aggregates.civilizations).map(Number));
@@ -641,6 +664,7 @@
     const figureFields=['id','name','translated_name','name_string','title','race','caste','birth_year','death_year','sex','active_interaction','sphere','used_identity_id','entity_link','best_skill','deity','is_deity','force','profession','adventurer','player','is_player','ent_pop_id'];
     const collect=async(group,target)=>scan(world,group,header=>{let value=header;if(group==='figures'){value={};for(const key of figureFields)if(header[key]!==undefined)value[key]=header[key];const positionIds=civilizationPositionIds(header);if(positionIds.size)value.civRacePositionIds=[...positionIds];if(value.entity_link)value.entity_link=list(value.entity_link).slice(0,1);if(!value.best_skill&&header.hf_skill)value.best_skill=[...list(header.hf_skill)].sort((a,b)=>(Number(b.total_ip)||0)-(Number(a.total_ip)||0))[0];}target.set(Number(header.id),value);},{signal:options.signal});
     await collect('figures',figures);report('figures',8);await collect('entities',entities);await collect('sites',sites);await collect('artifacts',artifacts);await collect('written_contents',works);await collect('collections',collections);report('objects',20);
+    const writtenMetrics=global.LegendsData.writtenWorkMetrics(works.values(),artifacts.values());
     for(const id of figures.keys()){const block=Math.floor(id/4096),bits=aggregates.figureExistence[block]||(aggregates.figureExistence[block]=new Uint32Array(128)),offset=id%4096;bits[offset>>>5]|=1<<(offset&31);}
     for(const figure of figures.values()){const population=factId(figure,'ent_pop_id');if(population!==null)aggregates.populationMembers[population]=(aggregates.populationMembers[population]||0)+1;}
     const known={figures,entities,sites,artifacts,written_contents:works,collections,regions},civCandidates=new Set([...entities.values()].filter(header=>fold(header.type)==='civilization').map(header=>header.id)),civilizations=new Set(),forcedCivs=new Set(),playerObjects=new Map(),battleSides=new Map();
@@ -665,6 +689,7 @@
     const killer=header=>roleId(header,'figures','slayer_hfid','slayer_hf');
     await scan(world,'events',header=>{
       const id=Number(header.id),type=fold(header.type);eventExists.add(id);maxRawEventId=Math.max(maxRawEventId,id);
+      writtenMetrics.addCopy(header);
       if(['created site','reclaim site'].includes(type)){const civ=factId(header,'civ_id');if(entities.has(civ)&&(!entities.get(civ).type||fold(entities.get(civ).type)==='unknown'))candidateCiv(civ);}
       if(['procession','ceremony','performance','competition'].includes(type))forceCiv(factId(header,'civ_id'));
       if(type==='created world construction'){const construction=factId(header,'wcid'),master=factId(header,'master_wcid');if(construction!==null){const facts=aggregates.constructionFacts[construction]||(aggregates.constructionFacts[construction]={});if(master!==null)facts.master_construction_id=master;for(const key of ['site_id1','site_id2'])if(factId(header,key)!==null)facts[key]=factId(header,key);}}
@@ -765,7 +790,7 @@
     for(const header of collections.values()){const type=fold(header.type);if(type==='battle'){const a=metricRead(aggregates,'collections','attackerDeathCount',header.id),d=metricRead(aggregates,'collections','defenderDeathCount',header.id),value=a+d;if(value>0){const attacker=entities.get(factId(header,'attacking_enid','attacker_ent_id')),defender=entities.get(factId(header,'defending_enid','defender_ent_id'));ranked('bloodiest_battles','battles',header,value,value+' 人死亡',(attacker?.name||'进攻方')+' 对 '+(defender?.name||'防守方'),'进攻方死亡：'+a+'，防守方死亡：'+d);}}if(type==='beast attack'){const death=metricRead(aggregates,'collections','deathCount',header.id),count=metricRead(aggregates,'collections','eventCount',header.id);ranked('devastating_rampages','rampages',header,death||count,death?death+' 次击杀':count+' 个事件',String(header.start_year)+' 年','',{deathCount:death,eventCount:count});}}
     for(const header of sites.values()){const value=metricRead(aggregates,'sites','conquests',header.id);if(value>0)ranked('contested_sites','sites',header,value,value+' 次征服',header.type||'');}
     for(const header of entities.values()){const sub=[header.type,header.race].filter(Boolean).join(' • '),value=metricRead(aggregates,'entities','siteHistoryCount',header.id);if(isCiv(header)&&value>0)ranked('largest_empires','entities',header,value,value+' 个地点',sub);const crime=metricRead(aggregates,'entities','crimes',header.id);if(crime>0)ranked('notorious_syndicates','entities',header,crime,crime+' 次犯罪',sub);}
-    for(const header of works.values()){const value=metricRead(aggregates,'written_contents','eventCount',header.id);if(value>0){const author=figures.get(factId(header,'author_hfid','author','author_id'));ranked('most_copied_works','writtencontents',header,value,value+' 个记录事件',author?'作者：'+author.name:'佚名');}}
+    copiedWorkRecords(aggregates,works.values(),writtenMetrics);
     for(const header of artifacts.values()){const value=metricRead(aggregates,'artifacts','eventCount',header.id);if(value>0)ranked('oldest_artifacts','artifacts',header,value,value+' 个事件',header.item_subtype||header.item_type||header.type||'遗物');}
     for(const [group,kind,key]of[['regions','regions','largest_regions'],['underground_regions','undergroundregions','largest_underground_regions']])await scan(world,group,header=>{const value=coords(header.coords).length||Number(header.square_tiles)||0;if(value>0)ranked(key,kind,header,value,value+' 格',[header.type,header.evilness,header.depth===undefined?'':'深度 '+header.depth].filter(Boolean).join(' • '));if(group==='regions'){const battles=metricRead(aggregates,'regions','battleCount',header.id);if(battles>0)ranked('bloodiest_regions','regions',header,battles,battles+' 场战役',[header.type,header.evilness].filter(Boolean).join(' • '));}},{signal:options.signal});
     await scan(world,'rivers',header=>{const value=coords(header.path).length+coords(header.end_pos).length;if(value>0)ranked('longest_rivers','rivers',header,value,value+' 格','河流');},{signal:options.signal});
@@ -796,9 +821,9 @@ self.onmessage=async function(message){const world=message.data;const originalId
     if(analyticsTasks.has(world))return sharedRead(analyticsTasks,world,options.signal,()=>analytics(world,options));
     const task=(async()=>{
       const existing=world.disk?.aggregates||world.aggregates;
-      if(existing?.version===ANALYTICS_VERSION)return civilizationRaces(world,existing,options);
+      if(existing?.version===ANALYTICS_VERSION)return copiedWorks(world,existing,options);
       const db=world.disk?await database(world.disk.dbName||CURRENT_DATABASE):null,cached=db&&db.objectStoreNames.contains('derived')?await readValue(db,'derived',world.disk.id,options):null;
-      if(cached?.version===ANALYTICS_VERSION)return civilizationRaces(world,cached.aggregates,options);
+      if(cached?.version===ANALYTICS_VERSION)return copiedWorks(world,cached.aggregates,options);
       return global.document&&global.Worker?analyticsWorker(world,options):calculateAnalytics(world,options);
     })();analyticsTasks.set(world,task);try{return await task;}finally{if(analyticsTasks.get(world)===task)analyticsTasks.delete(world);}
   }

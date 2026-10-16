@@ -22,7 +22,9 @@ FIXTURE = '''<df_world><name>Saved Upgrade Regression</name>
 <historical_figure><id>1</id><name>Urist Copperhammer</name><race>DWARF</race><birth_year>1</birth_year><death_year>-1</death_year></historical_figure>
 <historical_figure><id>2</id><name>Domas Ironshield</name><race>DWARF</race><birth_year>2</birth_year><death_year>-1</death_year></historical_figure>
 </historical_figures><sites><site><id>1</id><name>The Copper Mountain</name><type>fortress</type></site></sites>
-<historical_events><historical_event><id>7</id><year>10</year><type>poetic form created</type><hist_figure_id>1</hist_figure_id><reason>glorify hf</reason><reason_id>2</reason_id><details>ORIGINAL_UPGRADE_SOURCE</details></historical_event></historical_events>
+<artifacts><artifact><id>0</id><name>The Golden Book</name><item><writing_written_content_id>11</writing_written_content_id></item></artifact></artifacts>
+<written_contents><written_content><id>11</id><title>The Golden World</title><author>1</author></written_content><written_content><id>12</id><title>The Silver Commentary</title><reference><type>WRITTEN_CONTENT</type><id>11</id></reference></written_content></written_contents>
+<historical_events><historical_event><id>7</id><year>10</year><type>poetic form created</type><hist_figure_id>1</hist_figure_id><reason>glorify hf</reason><reason_id>2</reason_id><details>ORIGINAL_UPGRADE_SOURCE</details></historical_event><historical_event><id>8</id><year>11</year><type>artifact copied</type><artifact_id>0</artifact_id></historical_event></historical_events>
 </df_world>'''
 
 # Installed before each main app document runs, so even a very short upgrade is
@@ -152,6 +154,35 @@ return {worldId:world.id,diskId:world.disk.id,dbName:world.disk.dbName,facts:wor
         assert reloaded['sources'] == upgraded['sources'] and reloaded['eventId'] == 7 and reloaded['relatedCount'] == 1, reloaded
         assert reloaded['observer'] == {'workers': 0, 'imports': [], 'factsProgress': 0}, reloaded
         print('RELOAD_REUSES_UPGRADE', json.dumps(reloaded), flush=True)
+        # Retain the current facts and all other analytics, but replay the old
+        # recorded-event ranking in both saved metadata and the derived cache.
+        async_js('''
+const world=await LegendsLocalStore.getWorld(arguments[0]),a=world.disk.aggregates;
+delete a.copiedWorksVersion;
+a.records.entries.most_copied_works=[{kind:'writtencontents',id:11,record:{id:11,title:'The Golden World'},value:99,display:'99 个记录事件'}];
+await LegendsLocalStore.saveWorld(world);
+const packed=await LegendsStorageValues.pack({importId:world.disk.id,version:a.version,aggregates:a}),db=await LegendsFastStore.database(world.disk.dbName);
+await new Promise((resolve,reject)=>{const tx=db.transaction('derived','readwrite');tx.objectStore('derived').put(packed);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
+return true;
+''', seeded['worldId'])
+        command('/refresh', {})
+        wait("return LegendsApp?.state.world?.disk?.aggregates?.copiedWorksVersion===1&&!LegendsApp.state.pendingSaves?.size&&document.querySelectorAll('[data-table=events] tbody tr').length>0")
+        repaired = async_js('''
+const world=await LegendsLocalStore.getWorld(arguments[0]);
+return {id:world.disk.id,facts:world.disk.factsVersion,copyVersion:world.disk.aggregates.copiedWorksVersion,entries:world.disk.aggregates.records.entries.most_copied_works,observer:__upgrade};
+''', seeded['worldId'])
+        assert repaired['id'] == upgraded['diskId'] and repaired['facts'] == 3 and repaired['copyVersion'] == 1, repaired
+        assert repaired['entries'][0]['value'] == 2 and repaired['entries'][0]['detail'] == '复制：1 次；被其他作品引用：1 次', repaired
+        assert repaired['observer'] == {'workers': 0, 'imports': [], 'factsProgress': 0}, repaired
+        print('MAIN_APP_SAVES_COPY_RANKING', json.dumps(repaired, ensure_ascii=False), flush=True)
+        command('/url', {'url': (ROOT / 'index.html').as_uri() + '#/records?tab=lore'})
+        wait("return document.querySelector('[data-record-card=most_copied_works] .record-value')?.textContent==='2 次复制与引用'")
+        assert js("return document.querySelector('[data-record-card=most_copied_works] .record-detail').textContent") == '复制：1 次；被其他作品引用：1 次'
+        command('/refresh', {})
+        wait("return document.querySelector('[data-record-card=most_copied_works] .record-value')?.textContent==='2 次复制与引用'")
+        assert js('return LegendsApp.state.world.disk.aggregates.copiedWorksVersion') == 1
+        assert js('return __upgrade') == {'workers': 0, 'imports': [], 'factsProgress': 0}
+        print('RELOAD_REUSES_COPY_RANKING', flush=True)
         logs = command('/log', {'type': 'browser'})
         assert not [entry for entry in logs if entry['level'] == 'SEVERE'], logs
         print('BROWSER_LOG', json.dumps(logs), flush=True)
